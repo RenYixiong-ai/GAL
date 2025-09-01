@@ -19,7 +19,7 @@ import torch.nn.functional as F
 import numpy as np
 
 
-# 切换路径
+# Record current working directory
 local_path = os.getcwd()
 
 
@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
     epsilon_list = np.linspace(0.01, 0.9, attack_num)
 
-    # 定义数据转换
+    # Define data transforms
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.5,), (0.5,))
@@ -46,7 +46,7 @@ if __name__ == '__main__':
     trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True)
     testloader = DataLoader(testset, batch_size=batch_size, shuffle=False)
 
-    # 打开日志文件
+    # Open log file
     log_path = "experiment_log.txt"
     log_file = open(log_path, "w")
 
@@ -82,7 +82,7 @@ if __name__ == '__main__':
                 device=device
             )
 
-            # 分析特征
+            # Analyze learned features
             tot_NN.add(Single_NN.clone_self())
             accuracy = evaluate_accuracy(tot_NN, testloader, device, readout_head)
 
@@ -99,13 +99,13 @@ if __name__ == '__main__':
                     dis_fermi += dis_f.cpu().item() / num_batches
                     dis_boson += dis_b.cpu().item() / num_batches
 
-            # 对抗攻击 (只存数值)
+            # Perform adversarial attacks (record accuracy only)
             tot_NN.add(readout_head)
             acc_f, _ = attack(tot_NN, device, testset, epsilon=0.15, attack_type='fgsm')
             acc_g, _ = attack(tot_NN, device, testset, epsilon=0.15, attack_type='gaussian')
             tot_NN.pop()
 
-            # 写入日志
+            # Write metrics to log
             log_file.write(
                 f"[Epoch {epoch}] Layer {num_layer} | "
                 f"Total Loss: {loss:.4f}, FBM Loss: {loss_fbm:.4f}, Cross Loss: {loss_cross:.4f}, "
@@ -117,7 +117,7 @@ if __name__ == '__main__':
             log_file.flush()
             tot_NN.pop()
 
-        # 保存 layer 级别总指标
+        # Save layer-level summary metrics
         log_file.write(
             f"[Layer {num_layer} Summary] Total Loss: {loss:.4f}, FBM Loss: {loss_fbm:.4f}, "
             f"Cross Loss: {loss_cross:.4f}, Fermi: {dis_fermi:.4f}, "
@@ -129,10 +129,10 @@ if __name__ == '__main__':
         input_size = output_size
         tot_NN.add(Single_NN.clone_self())
 
-        # 训练读出头
+        # Train the readout head
         readout_head = train_readout(tot_NN, trainloader, output_size, tot_epoch, device)
 
-        # 扫描 epsilon
+        # Scan over attack strength epsilon
         for step, epsilon in enumerate(epsilon_list):
             tot_NN.add(readout_head)
             acc_f, _ = attack(tot_NN, device, testset, epsilon, attack_type='fgsm')
@@ -144,12 +144,12 @@ if __name__ == '__main__':
             )
             log_file.flush()
 
-        # 保存模型
+        # Save readout model for this layer
         os.makedirs("model", exist_ok=True)
         model_path = f"model/readout_head{num_layer}.pth"
         torch.save(readout_head.state_dict(), model_path)
 
-    # 保存总网络
+    # Save the complete network
     tot_NN.add(readout_head)
     os.makedirs("model", exist_ok=True)
     model_path = "model/tot_NN.pth"
@@ -159,3 +159,4 @@ if __name__ == '__main__':
     log_file.write(f"Final Eval Accuracy: {final_eval:.4f}\n")
     log_file.close()
     print("Training completed, log written to experiment_log.txt")
+
