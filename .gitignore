@@ -1,0 +1,19 @@
+# 忽略 data 文件夹及其所有内容
+data/
+result/
+wandb/
+models/
+runs/
+
+__pycache__
+*.out
+
+
+# LaTeX
+*.aux
+*.log
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.synctex.gz
