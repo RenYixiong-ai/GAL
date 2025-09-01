@@ -2,7 +2,7 @@
 data/
 result/
 wandb/
-models/
+model/
 runs/
 
 __pycache__
@@ -17,3 +17,4 @@ __pycache__
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+experiment_log.txt

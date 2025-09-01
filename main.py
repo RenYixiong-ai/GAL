@@ -26,8 +26,8 @@ local_path = os.getcwd()
 if __name__ == '__main__':
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     batch_size = 64  
-    tot_epoch = 1 #10
-    attack_num = 1 #40
+    tot_epoch = 10
+    attack_num = 40
     data_name = "MNIST"
 
     epsilon_list = np.linspace(0.01, 0.9, attack_num)

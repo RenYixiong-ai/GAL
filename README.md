@@ -33,6 +33,3 @@ Models and logs are saved in the `model` directory and `experiment_log.txt` resp
 - `loss/` – geometry-aware loss and adversarial attack utilities.
 - `train/` – training loop for individual layers.
 - `utils.py` – data loading, preprocessing, visualization and evaluation helpers.
-
-## References
-The approach is inspired by geometry-aware learning principles that promote manifold smoothness and adversarial robustness.
