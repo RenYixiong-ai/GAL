@@ -20,49 +20,86 @@ def weighted_balanced_loss(L1, L2, beta):
     loss_total = alpha * L1 + beta * L2
     return loss_total
 
-def train_with_readout(fixed_network, target_network, readout_head, data_loader, optimizer, criterion_fbm, criterion_cross, beta, device):
+def train_with_readout(
+    fixed_network,
+    target_network,
+    readout_head,
+    data_loader,
+    optimizer,
+    criterion_fbm,
+    criterion_cross,
+    beta,
+    device,
+):
+    """Train a single layer with an auxiliary readout.
+
+    Parameters
+    ----------
+    fixed_network : nn.Module or None
+        Previously trained part of the network whose parameters remain frozen.
+    target_network : nn.Module
+        The layer currently being trained.
+    readout_head : nn.Module
+        Temporary linear classifier used to supply a supervised signal.
+    data_loader : DataLoader
+        Iterator yielding training batches.
+    optimizer : torch.optim.Optimizer
+        Optimizer for the ``target_network`` parameters.
+    criterion_fbm : callable
+        Geometry-aware loss function (FDBLoss).
+    criterion_cross : callable
+        Cross-entropy loss for the readout.
+    beta : float
+        Weight of the cross-entropy term.
+    device : torch.device
+        Device on which computation takes place.
+    """
+
     if fixed_network is not None:
-        fixed_network.eval()    # 固定网络不训练
-    target_network.train()      # 目标网络训练
+        fixed_network.eval()    # keep the previous network frozen
+    target_network.train()      # train the current target network
     total_loss = 0
     total_loss_FBM = 0
     total_loss_cross = 0
 
     for inputs, labels in data_loader:
-        #inputs = inputs.view(inputs.shape[0], -1)  # 将图像展平
+        #inputs = inputs.view(inputs.shape[0], -1)  # flatten images if needed
         inputs, labels = inputs.to(device), labels.to(device)
 
-        # 如果固定网络不为空，数据先通过固定网络（不计算梯度）
+        # If a fixed network exists, forward data through it without gradients
         outputs = inputs
         if fixed_network is not None:
             with torch.no_grad():
                 outputs = fixed_network(inputs)
 
-        # 数据通过目标网络
+        # Forward through the target network
         target_outputs = target_network(outputs)
 
-        # 计算FBM损失
+        # Compute FBM loss
         loss_FBM = criterion_fbm(target_outputs, labels)
         total_loss_FBM += loss_FBM.item()
 
-        # 数据通过读出头网络
+        # Forward through the readout head
         logits = readout_head(target_outputs)
 
-        # 计算交叉熵损失
+        # Compute cross-entropy loss
         loss_cross = criterion_cross(logits, labels)
         total_loss_cross += loss_cross.item()
 
-        # 总损失
+        # Total loss
         loss = loss_FBM + beta * loss_cross
         total_loss += loss.item()
 
-        # 反向传播优化目标网络
+        # Backpropagate and update the target network
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-
-    return total_loss / len(data_loader), total_loss_FBM / len(data_loader), total_loss_cross / len(data_loader)
+    return (
+        total_loss / len(data_loader),
+        total_loss_FBM / len(data_loader),
+        total_loss_cross / len(data_loader),
+    )
 
 
 if __name__ == "__main__":
